@@ -1,0 +1,31 @@
+## a useful link
+# https://docs.vyos.io/en/1.4/automation/cloud-init.html#vyos-cloud-init
+
+# cloud-init bug?
+# https://vyos.dev/T6112
+
+# need to build vyos to enable cloud-init
+# https://www.reddit.com/r/vyos/comments/186mpdt/is_cidata_iso_feature_working_has_anybody_been/
+
+# build docs
+# https://github.com/vyos-legacy/vyos-vm-images
+
+# current rolling release build docs
+# https://docs.vyos.io/en/latest/contributing/build-vyos.html
+
+ vrf {
+     name mgmt {
+         table 100
+     }
+ }
+ interfaces {
+     ethernet eth0 {
+         vrf mgmt
+         address dhcp
+     }
+ }
+ service {
+     ssh {
+         vrf mgmt
+     }
+ }
