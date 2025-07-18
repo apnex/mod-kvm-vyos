@@ -8,40 +8,38 @@ terraform {
 		}
 	}
 }
-
-# Configure the Libvirt provider for local system
 provider "libvirt" {
 	uri = "qemu:///system"
 }
 
 locals {
-	name			= "tunnel-a"
+	hostname		= var.hostname
+	nic_list		= var.nic_list
 	base_volume_name	= "vyos-base"
+	userdata_template	= "${path.module}/userdata.cfg.tpl"
 }
 
 resource "libvirt_cloudinit_disk" "seedinit" {
 	name		= "seed.iso"
-	user_data	= data.template_file.user_data.rendered
-}
-
-data "template_file" "user_data" {
-	template = file("user-data.cfg")
+	user_data	= templatefile(local.userdata_template, {
+		hostname	= local.hostname
+	})
 }
 
 resource "libvirt_volume" "primary" {
-	name			= local.name
+	name			= local.hostname
 	pool			= "default"
 	base_volume_name	= local.base_volume_name
 }
 
 # Create a new domain - boot from alpine iso URL
 resource "libvirt_domain" "vm" {
-	name	= local.name
+	name	= local.hostname
 	cpu {
 		mode = "host-passthrough"
 	}
 	vcpu	= 2
-	memory	= 4096
+	memory	= 2048
 	console {
 		type        = "pty"
 		target_port = "0"
@@ -54,23 +52,26 @@ resource "libvirt_domain" "vm" {
 	boot_device {
 		dev = [ "hd", "cdrom" ]
 	}
+
+	# mgmt nic
 	network_interface {
 		network_name	= "default"
 		wait_for_lease	= true
 	}
-	network_interface {
-		network_name	= "net2"
-	}
-	network_interface {
-		network_name	= "net3"
+	
+	# dataplane nics
+	dynamic "network_interface" {
+		for_each = local.nic_list
+		content {
+			network_name = network_interface.value.network_name
+		}
 	}
 }
 
-output "domain_id" {
-	value = libvirt_domain.vm.id
+output "hostname" {
+	value = local.hostname
 }
 
-output "domain_address" {
+output "address" {
 	value = libvirt_domain.vm.network_interface.0.addresses.0
 }
-
