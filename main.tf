@@ -20,7 +20,7 @@ locals {
 }
 
 resource "libvirt_cloudinit_disk" "seedinit" {
-	name		= "seed.iso"
+	name		= "${local.hostname}-seed.iso"
 	user_data	= templatefile(local.userdata_template, {
 		hostname	= local.hostname
 	})
